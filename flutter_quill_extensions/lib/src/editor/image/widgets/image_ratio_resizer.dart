@@ -78,7 +78,7 @@ class ImageRatioResizerState extends State<ImageRatioResizer> {
   double _getRatioToSliderValue(double ratio) {
     switch (ratio) {
       case > 1:
-        return ratio * 20;
+        return (ratio - 1.0) * 20 + 50;
       default:
         return ratio * 50;
     }
@@ -87,7 +87,7 @@ class ImageRatioResizerState extends State<ImageRatioResizer> {
   double _getSizeRatioFromSliderValue(double value) {
     switch (value) {
       case > 50:
-        return value / 20.0;
+        return (value - 50) / 20.0 + 1;
       default:
         return value / 50.0;
     }
