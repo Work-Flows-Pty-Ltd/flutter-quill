@@ -11,21 +11,21 @@ import 'package:meta/meta.dart' show immutable;
 ///
 /// by default we already have a default implementation that show a dialog
 /// request the source for picking the image, from gallery, link or camera
-typedef OnRequestPickImage = Future<String?> Function(
+typedef OnRequestPickImage = Future<List<String?>> Function(
   BuildContext context,
 );
 
 /// A callback will called when inserting a image in the editor
 /// it have the logic that will insert the image block using the controller
 typedef OnImageInsertCallback = Future<void> Function(
-  String image,
+  List<String> imageUrls,
   QuillController controller,
 );
 
 /// When a new image picked this callback will called and you might want to
 /// do some logic depending on your use case
 typedef OnImageInsertedCallback = Future<void> Function(
-  String image,
+  List<String> imageUrls,
 );
 
 enum InsertImageSource {

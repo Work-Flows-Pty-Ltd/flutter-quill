@@ -33,7 +33,7 @@ class QuillToolbarImageButton extends QuillToolbarBaseButtonStateless {
     afterButtonPressed(context);
   }
 
-  Future<void> _handleImageInsert(String imageUrl) async {
+  Future<void> _handleImageInsert(List<String> imageUrl) async {
     await handleImageInsert(
       imageUrl,
       controller: controller,
@@ -46,11 +46,11 @@ class QuillToolbarImageButton extends QuillToolbarBaseButtonStateless {
   Future<void> _onPressedHandler(BuildContext context) async {
     final onRequestPickImage = options?.imageButtonConfig?.onRequestPickImage;
     if (onRequestPickImage != null) {
-      final imageUrl = await onRequestPickImage(
+      final imageUrls = await onRequestPickImage(
         context,
       );
-      if (imageUrl != null) {
-        await _handleImageInsert(imageUrl);
+      if (imageUrls.nonNulls.isNotEmpty) {
+        await _handleImageInsert(imageUrls.nonNulls.toList());
       }
       return;
     }
@@ -61,19 +61,20 @@ class QuillToolbarImageButton extends QuillToolbarBaseButtonStateless {
       return;
     }
 
-    final imageUrl = switch (source) {
+    final List<String?> imageUrls = switch (source) {
       InsertImageSource.gallery =>
-        (await ImagePicker().pickImage(source: ImageSource.gallery))?.path,
+        (await ImagePicker().pickMultiImage(requestFullMetadata: false))
+            .map((e) => e.path)
+            .toList(),
       InsertImageSource.link =>
-        context.mounted ? await _typeLink(context) : null,
-      InsertImageSource.camera =>
-        (await ImagePicker().pickImage(source: ImageSource.camera))?.path,
+        context.mounted ? [await _typeLink(context)] : [],
+      InsertImageSource.camera => [
+          (await ImagePicker().pickImage(source: ImageSource.camera))?.path
+        ],
     };
-    if (imageUrl == null) {
-      return;
-    }
-    if (imageUrl.trim().isNotEmpty) {
-      await _handleImageInsert(imageUrl);
+
+    if (imageUrls.nonNulls.isNotEmpty) {
+      await _handleImageInsert(imageUrls.nonNulls.toList());
     }
   }
 

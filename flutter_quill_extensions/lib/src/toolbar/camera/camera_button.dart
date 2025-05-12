@@ -79,7 +79,7 @@ class QuillToolbarCameraButton extends QuillToolbarBaseButtonStateless {
           return;
         }
         await handleImageInsert(
-          imageFile.path,
+          [imageFile.path],
           controller: controller,
           onImageInsertCallback: options?.cameraConfig?.onImageInsertCallback,
           onImageInsertedCallback:

@@ -13,6 +13,7 @@ import 'config/image_config.dart';
 import 'image_load_utils.dart';
 import 'image_save_utils.dart';
 import 'widgets/image.dart' show ImageTapWrapper, getImageStyleString;
+import 'widgets/image_ratio_resizer.dart' show ImageRatioResizer;
 import 'widgets/image_resizer.dart' show ImageResizer;
 
 class ImageOptionsMenu extends StatelessWidget {
@@ -24,6 +25,7 @@ class ImageOptionsMenu extends StatelessWidget {
     required this.readOnly,
     required this.imageProvider,
     this.prefersGallerySave = true,
+    this.resizeKeepRatio = true,
     super.key,
   });
 
@@ -33,6 +35,7 @@ class ImageOptionsMenu extends StatelessWidget {
   final ElementSize imageSize;
   final bool readOnly;
   final ImageProvider imageProvider;
+  final bool resizeKeepRatio;
 
   // TODO(quill_native_bridge): Update this doc comment once saveImageToGallery()
   //  is supported on Windows too (will be applicable like macOS). See https://pub.dev/packages/quill_native_bridge#-features
@@ -64,27 +67,38 @@ class ImageOptionsMenu extends StatelessWidget {
                 showCupertinoModalPopup<void>(
                   context: context,
                   builder: (modalContext) {
-                    final screenSize = MediaQuery.sizeOf(modalContext);
-                    return ImageResizer(
-                      onImageResize: (width, height) {
-                        final res = getEmbedNode(
-                          controller,
-                          controller.selection.start,
-                        );
+                    void onImageResize(width, height) {
+                      final res = getEmbedNode(
+                        controller,
+                        controller.selection.start,
+                      );
 
-                        final attr = replaceStyleStringWithSize(
-                          getImageStyleString(controller),
-                          width: width,
-                          height: height,
+                      final attr = replaceStyleStringWithSize(
+                        getImageStyleString(controller),
+                        width: width,
+                        height: height,
+                      );
+                      controller
+                        ..skipRequestKeyboard = true
+                        ..formatText(
+                          res.offset,
+                          1,
+                          StyleAttribute(attr),
                         );
-                        controller
-                          ..skipRequestKeyboard = true
-                          ..formatText(
-                            res.offset,
-                            1,
-                            StyleAttribute(attr),
-                          );
-                      },
+                    }
+
+                    if (resizeKeepRatio) {
+                      return ImageRatioResizer(
+                        imageWidth: imageSize.width ?? 0,
+                        imageHeight: imageSize.height ?? 0,
+                        onImageResize: onImageResize,
+                      );
+                    }
+
+                    final screenSize = MediaQuery.sizeOf(modalContext);
+
+                    return ImageResizer(
+                      onImageResize: onImageResize,
                       imageWidth: imageSize.width,
                       imageHeight: imageSize.height,
                       maxWidth: screenSize.width,
