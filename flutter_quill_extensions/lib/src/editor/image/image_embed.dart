@@ -29,8 +29,8 @@ class QuillEditorImageEmbedBuilder extends EmbedBuilder {
       context,
     );
 
-    final width = imageSize.width;
-    final height = imageSize.height;
+    final width = imageSize.width == 0 ? null : imageSize.width;
+    final height = imageSize.height == 0 ? null : imageSize.height;
 
     final imageWidget = getImageWidgetByImageSource(
       context: context,
@@ -52,7 +52,7 @@ class QuillEditorImageEmbedBuilder extends EmbedBuilder {
         showDialog(
           context: context,
           builder: (_) => ImageOptionsMenu(
-            controller: embedContext.controller,
+            embedContext: embedContext,
             config: config,
             imageSource: imageSource,
             imageSize: imageSize,

@@ -1,8 +1,12 @@
+import 'dart:async';
+import 'dart:math';
+import 'dart:ui' as ui;
+
 import 'package:flutter/cupertino.dart' show showCupertinoModalPopup;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart'
-    show ImageUrl, QuillController, StyleAttribute, getEmbedNode;
+    show ImageUrl, StyleAttribute, EmbedContext, Attribute;
 import 'package:flutter_quill/internal.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
@@ -18,7 +22,7 @@ import 'widgets/image_resizer.dart' show ImageResizer;
 
 class ImageOptionsMenu extends StatelessWidget {
   const ImageOptionsMenu({
-    required this.controller,
+    required this.embedContext,
     required this.config,
     required this.imageSource,
     required this.imageSize,
@@ -26,16 +30,18 @@ class ImageOptionsMenu extends StatelessWidget {
     required this.imageProvider,
     this.prefersGallerySave = true,
     this.resizeKeepRatio = true,
+    this.originalImageSize,
     super.key,
   });
 
-  final QuillController controller;
+  final EmbedContext embedContext;
   final QuillEditorImageEmbedConfig config;
   final String imageSource;
   final ElementSize imageSize;
   final bool readOnly;
   final ImageProvider imageProvider;
   final bool resizeKeepRatio;
+  final Size? originalImageSize;
 
   // TODO(quill_native_bridge): Update this doc comment once saveImageToGallery()
   //  is supported on Windows too (will be applicable like macOS). See https://pub.dev/packages/quill_native_bridge#-features
@@ -62,40 +68,47 @@ class ImageOptionsMenu extends StatelessWidget {
             ListTile(
               title: Text(context.loc.resize),
               leading: const Icon(Icons.settings_outlined),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
+                final originalImageSize = await imageProvider.getImageSize();
                 showCupertinoModalPopup<void>(
                   context: context,
                   builder: (modalContext) {
                     void onImageResize(width, height) {
-                      final res = getEmbedNode(
-                        controller,
-                        controller.selection.start,
-                      );
-
+                      final res = embedContext.node;
                       final attr = replaceStyleStringWithSize(
-                        getImageStyleString(controller),
+                        res.style.attributes[Attribute.style.key]?.value ?? '',
                         width: width,
                         height: height,
                       );
-                      controller
+                      embedContext.controller
                         ..skipRequestKeyboard = true
                         ..formatText(
-                          res.offset,
+                          res.documentOffset,
                           1,
                           StyleAttribute(attr),
                         );
                     }
 
-                    if (resizeKeepRatio) {
+                    final screenSize = MediaQuery.sizeOf(modalContext);
+
+                    if (resizeKeepRatio && originalImageSize != null) {
+                      final w = min(originalImageSize.width, screenSize.width);
+                      final h = w *
+                          (originalImageSize.height / originalImageSize.width);
+
                       return ImageRatioResizer(
-                        imageWidth: imageSize.width ?? 0,
-                        imageHeight: imageSize.height ?? 0,
+                        imageWidth:
+                            imageSize.width != null && imageSize.width! > 0
+                                ? imageSize.width!
+                                : w,
+                        imageHeight:
+                            imageSize.height != null && imageSize.height! > 0
+                                ? imageSize.height!
+                                : h,
                         onImageResize: onImageResize,
                       );
                     }
-
-                    final screenSize = MediaQuery.sizeOf(modalContext);
 
                     return ImageResizer(
                       onImageResize: onImageResize,
@@ -113,9 +126,9 @@ class ImageOptionsMenu extends StatelessWidget {
             title: Text(context.loc.copy),
             onTap: () async {
               Navigator.of(context).pop();
-              controller.copiedImageUrl = ImageUrl(
+              embedContext.controller.copiedImageUrl = ImageUrl(
                 imageSource,
-                getImageStyleString(controller),
+                getImageStyleString(embedContext.controller),
               );
 
               final imageBytes = await ImageLoader.instance
@@ -142,11 +155,8 @@ class ImageOptionsMenu extends StatelessWidget {
                   return;
                 }
 
-                final offset = getEmbedNode(
-                  controller,
-                  controller.selection.start,
-                ).offset;
-                controller.replaceText(
+                final offset = embedContext.node.offset;
+                embedContext.controller.replaceText(
                   offset,
                   1,
                   '',
@@ -256,5 +266,31 @@ class ImageOptionsMenu extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+extension on ImageProvider<Object> {
+  Future<Size?> getImageSize() async {
+    try {
+      final image = await _getImageFromProvider(this);
+      return Size(image.width.toDouble(), image.height.toDouble());
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<ui.Image> _getImageFromProvider(ImageProvider provider) {
+    final completer = Completer<ui.Image>();
+    final stream = provider.resolve(const ImageConfiguration());
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener((info, synchronousCall) {
+      completer.complete(info.image);
+      stream.removeListener(listener);
+    }, onError: (dynamic error, stack) {
+      completer.completeError(error, stack);
+      stream.removeListener(listener);
+    });
+    stream.addListener(listener);
+    return completer.future;
   }
 }
