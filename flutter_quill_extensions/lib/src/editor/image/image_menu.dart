@@ -121,6 +121,27 @@ class ImageOptionsMenu extends StatelessWidget {
                 );
               },
             ),
+          if (!readOnly)
+            ListTile(
+              title: const Text('Rset Size'),
+              leading: const Icon(Icons.width_full),
+              onTap: () async {
+                Navigator.pop(context);
+                final res = embedContext.node;
+                final attr = replaceStyleStringWithSize(
+                  res.style.attributes[Attribute.style.key]?.value ?? '',
+                  width: null,
+                  height: null,
+                );
+                embedContext.controller
+                  ..skipRequestKeyboard = true
+                  ..formatText(
+                    res.documentOffset,
+                    1,
+                    StyleAttribute(attr),
+                  );
+              },
+            ),
           ListTile(
             leading: const Icon(Icons.copy_all_outlined),
             title: Text(context.loc.copy),
