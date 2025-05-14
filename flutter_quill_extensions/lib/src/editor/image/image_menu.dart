@@ -123,7 +123,7 @@ class ImageOptionsMenu extends StatelessWidget {
             ),
           if (!readOnly)
             ListTile(
-              title: const Text('Rset Size'),
+              title: const Text('Reset Size'),
               leading: const Icon(Icons.width_full),
               onTap: () async {
                 Navigator.pop(context);
