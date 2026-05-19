@@ -199,6 +199,8 @@ mixin RawEditorStateTextInputClientMixin on EditorState
   TextEditingValue? get currentTextEditingValue =>
       _lastKnownRemoteTextEditingValue;
 
+  bool onFocusReceived() => false;
+
   // autofill is not needed
   @override
   AutofillScope? get currentAutofillScope => null;
