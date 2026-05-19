@@ -52,6 +52,9 @@ mixin RawEditorStateTextInputClientMixin on EditorState
   bool get hasConnection =>
       _textInputConnection != null && _textInputConnection!.attached;
 
+  // Keep unannotated so this fork still parses on older Flutter SDKs.
+  bool onFocusReceived() => false;
+
   /// Opens or closes input connection based on the current state of
   /// [focusNode] and [value].
   void openOrCloseConnection() {
